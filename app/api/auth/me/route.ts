@@ -12,7 +12,7 @@ export async function GET() {
   const payload = await verifySessionToken(token)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const db = getDb()
+  const db = await getDb()
   const user = await get<UserRow>(db, `SELECT id, email, name FROM users WHERE id = ?`, [payload.sub])
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

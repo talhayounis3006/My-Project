@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Please fill all fields' }, { status: 400 })
   }
 
-  const db = getDb()
+  const db = await getDb()
   await run(db, `INSERT INTO contact_messages (user_id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)`, [
     session.sub,
     name,

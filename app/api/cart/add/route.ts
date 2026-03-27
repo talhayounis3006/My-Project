@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const product = products.find((p) => p.id === parsedId)
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
-    const db = getDb()
+    const db = await getDb()
     const existing = await get<{ id: number; quantity: number }>(
       db,
       `SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?`,

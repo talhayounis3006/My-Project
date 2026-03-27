@@ -15,7 +15,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ itemId: s
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const db = getDb()
+  const db = await getDb()
   const row = await get<{ id: number }>(db, `SELECT id FROM cart_items WHERE id = ? AND user_id = ?`, [id, session.sub])
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -31,7 +31,7 @@ export async function DELETE(_req: Request, context: { params: Promise<{ itemId:
   const id = Number(itemId)
   if (!Number.isInteger(id)) return NextResponse.json({ error: 'Invalid item id' }, { status: 400 })
 
-  const db = getDb()
+  const db = await getDb()
   await run(db, `DELETE FROM cart_items WHERE id = ? AND user_id = ?`, [id, session.sub])
   return NextResponse.json({ ok: true })
 }

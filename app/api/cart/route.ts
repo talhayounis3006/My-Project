@@ -18,7 +18,7 @@ export async function GET() {
   const session = await getSessionUser()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const db = getDb()
+  const db = await getDb()
   const rows = await all<CartRow>(db, `SELECT id, product_id, quantity FROM cart_items WHERE user_id = ? ORDER BY id DESC`, [
     session.sub,
   ])
@@ -46,7 +46,7 @@ export async function DELETE() {
   await initDb()
   const session = await getSessionUser()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const db = getDb()
+  const db = await getDb()
   await run(db, `DELETE FROM cart_items WHERE user_id = ?`, [session.sub])
   return NextResponse.json({ ok: true })
 }

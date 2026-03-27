@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const password = body?.password
   if (!email || !password) return NextResponse.json({ error: 'Missing credentials' }, { status: 400 })
 
-  const db = getDb()
+  const db = await getDb()
   const user = await get<UserRow>(db, `SELECT id, email, password_hash FROM users WHERE email = ?`, [email])
   if (!user) return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   const ok = await verifyPassword(password, user.password_hash)

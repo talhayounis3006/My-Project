@@ -1,12 +1,12 @@
 import path from 'path'
 import fs from 'fs'
-import sqlite3 from 'sqlite3'
 import { Pool } from 'pg'
 
 const DB_DIR = path.join(process.cwd(), 'data')
 const DB_PATH = path.join(DB_DIR, 'balkan.sqlite')
 
-let _sqliteDb: sqlite3.Database | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _sqliteDb: any = null
 let _pgPool: Pool | null = null
 
 function ensureDbDir() {
@@ -16,7 +16,7 @@ function ensureDbDir() {
 const isPostgres = !!process.env.POSTGRES_URL || !!process.env.DATABASE_URL
 const postgresUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL
 
-export function getDb() {
+export async function getDb() {
   if (isPostgres) {
     if (!_pgPool) {
       _pgPool = new Pool({
@@ -29,12 +29,14 @@ export function getDb() {
 
   ensureDbDir()
   if (_sqliteDb) return _sqliteDb
+  // Dynamic import so sqlite3 native module is only loaded when needed (dev mode)
+  const sqlite3 = (await import('sqlite3')).default
   _sqliteDb = new sqlite3.Database(DB_PATH)
   return _sqliteDb
 }
 
 export async function initDb() {
-  const db = getDb()
+  const db = await getDb()
   const dbType = isPostgres ? 'pg' : 'sqlite'
 
   const idType = dbType === 'pg' ? 'SERIAL' : 'INTEGER'
@@ -82,39 +84,42 @@ function convertSql(sql: string) {
   return sql.replace(/\?/g, () => `$${i++}`)
 }
 
-export async function run(db: sqlite3.Database | Pool, sql: string, params: unknown[] = []) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function run(db: any, sql: string, params: unknown[] = []) {
   if (isPostgres) {
     await (db as Pool).query(convertSql(sql), params)
     return
   }
   return new Promise<void>((resolve, reject) => {
-    ;(db as sqlite3.Database).run(sql, params as unknown[], function (err) {
+    db.run(sql, params as unknown[], function (this: unknown, err: Error | null) {
       if (err) reject(err)
       else resolve()
     })
   })
 }
 
-export async function get<T>(db: sqlite3.Database | Pool, sql: string, params: unknown[] = []) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function get<T>(db: any, sql: string, params: unknown[] = []) {
   if (isPostgres) {
     const res = await (db as Pool).query(convertSql(sql), params)
     return res.rows[0] as T | undefined
   }
   return new Promise<T | undefined>((resolve, reject) => {
-    ;(db as sqlite3.Database).get(sql, params as unknown[], (err, row) => {
+    db.get(sql, params as unknown[], (err: Error | null, row: T) => {
       if (err) reject(err)
       else resolve(row as T | undefined)
     })
   })
 }
 
-export async function all<T>(db: sqlite3.Database | Pool, sql: string, params: unknown[] = []) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function all<T>(db: any, sql: string, params: unknown[] = []) {
   if (isPostgres) {
     const res = await (db as Pool).query(convertSql(sql), params)
     return (res.rows || []) as T[]
   }
   return new Promise<T[]>((resolve, reject) => {
-    ;(db as sqlite3.Database).all(sql, params as unknown[], (err, rows) => {
+    db.all(sql, params as unknown[], (err: Error | null, rows: T[]) => {
       if (err) reject(err)
       else resolve((rows || []) as T[])
     })

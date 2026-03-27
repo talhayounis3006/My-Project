@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (!email || !password) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   if (password.length < 6) return NextResponse.json({ error: 'Password too short' }, { status: 400 })
 
-  const db = getDb()
+  const db = await getDb()
   const existing = await get<ExistingRow>(db, `SELECT id FROM users WHERE email = ?`, [email])
   if (existing) return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
 
