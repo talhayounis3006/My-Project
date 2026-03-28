@@ -12,28 +12,10 @@ interface Props {
 export default function AddToCartButton({ disabled, productId }: Props) {
   const router = useRouter()
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (disabled) return
-    try {
-      const res = await fetch('/api/auth/me', { method: 'GET' })
-      if (!res.ok) {
-        router.push('/login?next=/menu')
-        return
-      }
-      const addRes = await fetch('/api/cart/add', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ productId, quantity: 1 }),
-      })
-      if (!addRes.ok) {
-        window.alert('Failed to add item to cart')
-        return
-      }
-      window.alert('Item added to cart')
-      router.push('/contact')
-    } catch {
-      router.push('/login')
-    }
+    window.alert('Item added to cart (Demo Mode)')
+    router.push('/contact')
   }
 
   return (

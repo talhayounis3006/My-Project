@@ -1,87 +1,18 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import React, { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 
-type CartItem = {
-  id: number
-  productId: number
-  quantity: number
-  unitPrice: number
-  lineTotal: number
-  product: { id: number; name: string; price: string }
-}
-
 export default function ContactPage() {
-  const router = useRouter()
-  const [isAuthChecked, setIsAuthChecked] = useState(false)
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [isLoadingCart, setIsLoadingCart] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [subject, setSubject] = useState("New order from Balkan Food website")
+  const [subject, setSubject] = useState("Inquiry from Balkan Food website")
   const [message, setMessage] = useState("")
-
-  const subtotal = useMemo(() => cartItems.reduce((sum, item) => sum + item.lineTotal, 0), [cartItems])
-
-  const loadCart = async () => {
-    setIsLoadingCart(true)
-    try {
-      const res = await fetch("/api/cart")
-      if (!res.ok) {
-        setCartItems([])
-        return
-      }
-      const data = (await res.json()) as { items?: CartItem[] }
-      setCartItems(data.items || [])
-    } catch {
-      setCartItems([])
-    } finally {
-      setIsLoadingCart(false)
-    }
-  }
-
-  useEffect(() => {
-    const check = () => {
-      fetch('/api/auth/me')
-        .then((r) => {
-          if (!r.ok) {
-            router.push('/login?next=/contact')
-            return
-          }
-          setIsAuthChecked(true)
-          void loadCart()
-        })
-        .catch(() => router.push('/login?next=/contact'))
-    }
-    void check()
-  }, [router])
-
-  const updateQty = async (itemId: number, quantity: number) => {
-    const safeQty = Math.max(1, quantity)
-    await fetch(`/api/cart/${itemId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ quantity: safeQty }),
-    })
-    await loadCart()
-  }
-
-  const removeItem = async (itemId: number) => {
-    await fetch(`/api/cart/${itemId}`, { method: "DELETE" })
-    await loadCart()
-  }
-
-  const clearCart = async () => {
-    await fetch("/api/cart", { method: "DELETE" })
-    await loadCart()
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,31 +21,15 @@ export default function ContactPage() {
       return
     }
     setIsSubmitting(true)
-    try {
-      const orderLines = cartItems.map((item) => `- ${item.product.name} x${item.quantity} (${item.product.price})`).join("\n")
-      const finalMessage = `${message}\n\nOrder Items:\n${orderLines || "- No items in cart"}\nSubtotal: $${subtotal.toFixed(2)}`
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, subject, message: finalMessage }),
-      })
-      const data = (await res.json().catch(() => null)) as { error?: string; message?: string } | null
-      if (!res.ok) {
-        window.alert(data?.error || "Failed to send")
-        setIsSubmitting(false)
-        return
-      }
-      window.alert("Order submitted successfully!")
+    // Simulate API call
+    setTimeout(() => {
+      window.alert("Thank you for your message! We will get back to you soon.")
+      setName("")
+      setEmail("")
       setMessage("")
-      await clearCart()
-    } catch {
-      window.alert("Failed to send")
-    } finally {
       setIsSubmitting(false)
-    }
+    }, 1000)
   }
-
-  if (!isAuthChecked) return null
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -171,9 +86,9 @@ export default function ContactPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Message / Order Notes</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Message</label>
                 <Textarea
-                  placeholder="Tell us more about your order or questions..."
+                  placeholder="Your message..."
                   className="min-h-[150px] rounded-xl border-border/60 bg-muted/30 focus:bg-white transition-colors"
                   value={message}
                   required
@@ -193,40 +108,6 @@ export default function ContactPage() {
               <p className="text-sm text-muted-foreground">Reach out through any of these channels.</p>
             </div>
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-sm">Your Cart</h3>
-                  <button onClick={clearCart} className="text-xs text-red-600 hover:underline" type="button">Clear Cart</button>
-                </div>
-                {isLoadingCart ? (
-                  <p className="text-sm text-muted-foreground">Loading cart...</p>
-                ) : cartItems.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Your cart is empty. Add items from product pages.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {cartItems.map((item) => (
-                      <div key={item.id} className="rounded-lg border border-border/40 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium">{item.product.name}</p>
-                          <button type="button" className="text-xs text-red-600 hover:underline" onClick={() => removeItem(item.id)}>Remove</button>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <button type="button" className="px-2 py-1 border rounded" onClick={() => updateQty(item.id, item.quantity - 1)}>-</button>
-                            <span className="text-sm">{item.quantity}</span>
-                            <button type="button" className="px-2 py-1 border rounded" onClick={() => updateQty(item.id, item.quantity + 1)}>+</button>
-                          </div>
-                          <span className="text-sm font-semibold">${item.lineTotal.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between border-t pt-3">
-                      <span className="text-sm font-semibold">Subtotal</span>
-                      <span className="text-sm font-bold">${subtotal.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
               {[
                 { icon: MapPin, label: "Address", value: "123 Balkan Street, Foodville, NY 10001", color: "from-red-500 to-rose-600" },
                 { icon: Phone, label: "Phone", value: "(123) 456-7890", color: "from-emerald-500 to-teal-600" },
